@@ -1,10 +1,10 @@
 pub mod io {
 
     use std::{fs::{File, self}, path::Path, io::Write};
-    use crate::image::Image;
+    use crate::netpbm::AnymapImage;
 
     #[allow(dead_code)]
-    impl Image {
+    impl AnymapImage {
         pub fn write_as_ascii(&self, path: &str) -> Result<(), String> {
             // open file
             let mut file = match File::create(Path::new(path)) {
@@ -106,7 +106,7 @@ pub mod io {
             Ok(())
         }
     
-        pub fn read_from_binary(path: &str) -> Result<Image, String> {
+        pub fn read_from_binary(path: &str) -> Result<AnymapImage, String> {
     
             // open file
             let file = match fs::read(Path::new(path)) {
@@ -125,17 +125,17 @@ pub mod io {
                 parsed_header.push(parse_val);
             }
     
-            let parsed_image: Result<Image, String>;
+            let parsed_image: Result<AnymapImage, String>;
             match header[0] {
-                "P4" => parsed_image = Image::pbm(byte_vector, parsed_header[1], parsed_header[0]),
-                "P5" => parsed_image = Image::pgm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
-                "P6" => parsed_image = Image::ppm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
+                "P4" => parsed_image = AnymapImage::pbm(byte_vector, parsed_header[1], parsed_header[0]),
+                "P5" => parsed_image = AnymapImage::pgm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
+                "P6" => parsed_image = AnymapImage::ppm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
                 _ => return Err("Error: no valid magic number detected".to_string()),
             }
             parsed_image
         }
     
-        pub fn read_from_ascii(path: &str) -> Result<Image, String> {
+        pub fn read_from_ascii(path: &str) -> Result<AnymapImage, String> {
             // open file
             let mut file = match fs::read_to_string(Path::new(path)) {
                 Ok(file) => file,
