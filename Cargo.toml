@@ -1,0 +1,15 @@
+[package]
+name = "ductr"
+version = "0.1.0"
+authors = ["Jonathan Kocevar"]
+description = "a small crate for reading, writing, and simple manipulation of the portal pixelmap format family"
+readme = "readme.md"
+repository = "https://github.com/KairosJK/ductr"
+license = "GPL-3.0-only"
+keywords = ["pbm", "pgm", "ppm", "netpbm", "image"]
+categories = ["encoding", "graphics", "multimedia::images", "development-tools::debugging"]
+exclude = ["test/", ".*"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
