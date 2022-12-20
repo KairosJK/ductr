@@ -8,7 +8,7 @@ The following crate can be used by entering the following in your project's `Car
 
 ```toml
 [dependencies]
-vimwiki = "0.1"
+ductr = "0.0.1"
 ```
 
 ## ⚙️ Examples
