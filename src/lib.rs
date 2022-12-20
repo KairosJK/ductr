@@ -74,10 +74,15 @@ mod tests {
     }
 
     #[test]
-    fn read_file() {
-        let mut x = AnymapImage::read_from_binary("test/shinji.ppm").unwrap();
-        x.invert_image();
-        x.write_as_binary("test/newoutput.pnm").unwrap();
+    fn read_file_binary() {
+        let x = AnymapImage::read_from_binary("test/shinji.ppm").unwrap();
+        x.write_as_binary("test/newoutput_binary.pnm").unwrap();
+    }
+
+    #[test]
+    fn read_file_ascii() {
+        let x = AnymapImage::read_from_ascii("test/red_ascii.ppm").unwrap();
+        x.write_as_binary("test/newoutput_ascii.pnm").unwrap();
     }
 
 }

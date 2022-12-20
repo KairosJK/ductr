@@ -136,15 +136,44 @@ pub mod io {
         }
     
         pub fn read_from_ascii(path: &str) -> Result<AnymapImage, String> {
+            
             // open file
             let mut file = match fs::read_to_string(Path::new(path)) {
                 Ok(file) => file,
-                Err(e) => return Err(format!("Error: could not create file: {:?}", e)),
+                Err(e) => return Err(format!("Error: could not read file: {:?}", e)),
             };
     
             let delim_vec = file.split_ascii_whitespace().collect::<Vec<&str>>();
 
-            Err("f u".to_string())
+            let mut header_args: usize = 0;
+            match delim_vec.get(0) {
+                Some(&"P1") => header_args = 3,
+                Some(&"P2" | &"P3") => header_args = 4,
+                _ => return Err("Error: could not read file: magic number was not detected".to_string()),
+            }
+
+            let mut parsed_header: Vec<usize> = Vec::new();
+            for header_info in delim_vec[1..header_args].iter() {
+                let parsed_header_info = header_info.parse::<usize>()
+                                                           .map_err(|_| "Error: byte array holds non-standard elements".to_string())?;
+                parsed_header.push(parsed_header_info);
+            }
+
+            let mut byte_vector: Vec<u8> = Vec::new();
+            for byte in delim_vec[header_args..].iter() {
+                let parsed_byte = byte.parse::<u8>()
+                                          .map_err(|_| "Error: byte array holds non-standard elements".to_string())?;
+                byte_vector.push(parsed_byte);
+            }
+
+            let parsed_image: Result<AnymapImage, String>;
+            match delim_vec.get(0) {
+                Some(&"P1") => parsed_image = AnymapImage::pbm(byte_vector, parsed_header[1], parsed_header[0]),
+                Some(&"P2") => parsed_image = AnymapImage::pgm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
+                Some(&"P3") => parsed_image = AnymapImage::ppm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
+                _ => return Err("Error: could not read file: magic number was not detected".to_string()),
+            }
+            parsed_image
         }
     }
 
