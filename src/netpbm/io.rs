@@ -5,6 +5,27 @@ pub mod io {
 
     #[allow(dead_code)]
     impl AnymapImage {
+
+        /// # Write AnymapImage to ascii file
+        /// Writes given image to file argument in standard ascii format
+        /// 
+        /// Rules for arguments:
+        /// - Must be a valid path to write to
+        /// - Can take any PNM formatted file (PBM, PGM, PPM)
+        /// 
+        /// Example:
+        /// ```
+        /// use ductr::netpbm::AnymapImage;
+        /// 
+        /// // create pixel buffer
+        /// let mut buffer = vec![0; 100*100];
+        /// 
+        /// // create white 100x100 PBM AnymapImage object
+        /// let ppm_white = AnymapImage::pbm(buffer, 100, 100).unwrap();
+        /// 
+        /// ppm_white.write_as_ascii("tests/images/white.ppm").expect("Could not create file");
+        /// 
+        /// ``` 
         pub fn write_as_ascii(&self, path: &str) -> Result<(), String> {
             // open file
             let mut file = match File::create(Path::new(path)) {
@@ -53,6 +74,26 @@ pub mod io {
             Ok(())
         }
     
+        /// # Write AnymapImage to binary file
+        /// Writes given image to file argument in standard binary format
+        /// 
+        /// Rules for arguments:
+        /// - Must be a valid path to write to
+        /// - Can take any PNM formatted file (PBM, PGM, PPM)
+        /// 
+        /// Example:
+        /// ```
+        /// use ductr::netpbm::AnymapImage;
+        /// 
+        /// // create pixel buffer
+        /// let mut buffer = vec![1; 100*100];
+        /// 
+        /// // create black 100x100 PBM AnymapImage object
+        /// let ppm_black = AnymapImage::pbm(buffer, 100, 100).unwrap();
+        /// 
+        /// ppm_black.write_as_binary("tests/images/black.ppm").expect("Could not create file");
+        /// 
+        /// ``` 
         pub fn write_as_binary(&self, path: &str) -> Result<(), String> {
             
             // open file
@@ -106,6 +147,21 @@ pub mod io {
             Ok(())
         }
     
+        /// # Read AnymapImage from binary file
+        /// Read given file to new image in standard binary format
+        /// 
+        /// Rules for arguments:
+        /// - Must be a valid path to read from
+        /// - File at path must be in valid binary format
+        /// - Can take any PNM formatted file (PBM, PGM, PPM)
+        /// 
+        /// Example:
+        /// ```
+        /// use ductr::netpbm::AnymapImage;
+        /// 
+        /// // create black PBM AnymapImage object from file
+        /// let ppm_black = AnymapImage::read_from_binary("tests/images/black.ppm").expect("Could not read file");
+        /// ``` 
         pub fn read_from_binary(path: &str) -> Result<AnymapImage, String> {
     
             // open file
@@ -114,7 +170,15 @@ pub mod io {
                 Err(e) => return Err(format!("Error: could not read file: {}", e)),
             };
     
-            let (header, byte_vector) = parse_header_to_slice(&file);
+            let magic_num = std::str::from_utf8(&file[..2]).map_err(|_| "Error: could not read file: magic number was not detected".to_string())?;
+            let header_args: usize;
+            match magic_num {
+                "P4" => header_args = 3,
+                "P5" | "P6" => header_args = 4,
+                _ => return Err("Error: could not read file: valid magic number was not detected".to_string()),
+            }
+
+            let (header, byte_vector) = parse_header_to_slice(&file, header_args);
     
             let mut parsed_header: Vec<usize> = Vec::new();
             for x in &header[1..] {
@@ -126,26 +190,41 @@ pub mod io {
             }
     
             let parsed_image: Result<AnymapImage, String>;
-            match header[0] {
-                "P4" => parsed_image = AnymapImage::pbm(byte_vector, parsed_header[1], parsed_header[0]),
+            match magic_num {
+                "P4" => parsed_image = AnymapImage::pbm(realign_byte_buffer(byte_vector, parsed_header[0]), parsed_header[1], parsed_header[0]),
                 "P5" => parsed_image = AnymapImage::pgm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
                 "P6" => parsed_image = AnymapImage::ppm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
-                _ => return Err("Error: no valid magic number detected".to_string()),
+                _ => unreachable!(),
             }
             parsed_image
         }
     
+        /// # Read AnymapImage from ascii file
+        /// Read given file to new image in standard ascii format
+        /// 
+        /// Rules for arguments:
+        /// - Must be a valid path to read from
+        /// - File at path must be in valid ascii format
+        /// - Can take any PNM formatted file (PBM, PGM, PPM)
+        /// 
+        /// Example:
+        /// ```
+        /// use ductr::netpbm::AnymapImage;
+        /// 
+        /// // create white PBM AnymapImage object from file
+        /// let ppm_white = AnymapImage::read_from_ascii("tests/images/white.ppm").expect("Could not read file");
+        /// ``` 
         pub fn read_from_ascii(path: &str) -> Result<AnymapImage, String> {
             
             // open file
-            let mut file = match fs::read_to_string(Path::new(path)) {
+            let file = match fs::read_to_string(Path::new(path)) {
                 Ok(file) => file,
                 Err(e) => return Err(format!("Error: could not read file: {:?}", e)),
             };
     
             let delim_vec = file.split_ascii_whitespace().collect::<Vec<&str>>();
 
-            let mut header_args: usize = 0;
+            let header_args: usize;
             match delim_vec.get(0) {
                 Some(&"P1") => header_args = 3,
                 Some(&"P2" | &"P3") => header_args = 4,
@@ -153,14 +232,20 @@ pub mod io {
             }
 
             let mut parsed_header: Vec<usize> = Vec::new();
-            for header_info in delim_vec[1..header_args].iter() {
-                let parsed_header_info = header_info.parse::<usize>()
-                                                           .map_err(|_| "Error: byte array holds non-standard elements".to_string())?;
-                parsed_header.push(parsed_header_info);
+            let mut header_args_count: usize = 1;
+            let mut idx = 1;
+            while header_args_count < header_args && idx < delim_vec.len() {
+                if delim_vec[idx].chars().all(|x| x.is_ascii_digit()) {
+                    let parsed_header_info = delim_vec[idx].parse::<usize>()
+                                                                  .map_err(|_| "Error: header holds non-standard arguments".to_string())?;
+                    header_args_count += 1;
+                    parsed_header.push(parsed_header_info);
+                }
+                idx += 1;
             }
 
             let mut byte_vector: Vec<u8> = Vec::new();
-            for byte in delim_vec[header_args..].iter() {
+            for byte in delim_vec[idx..].iter() {
                 let parsed_byte = byte.parse::<u8>()
                                           .map_err(|_| "Error: byte array holds non-standard elements".to_string())?;
                 byte_vector.push(parsed_byte);
@@ -171,13 +256,15 @@ pub mod io {
                 Some(&"P1") => parsed_image = AnymapImage::pbm(byte_vector, parsed_header[1], parsed_header[0]),
                 Some(&"P2") => parsed_image = AnymapImage::pgm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
                 Some(&"P3") => parsed_image = AnymapImage::ppm(byte_vector, parsed_header[2], parsed_header[1], parsed_header[0]),
-                _ => return Err("Error: could not read file: magic number was not detected".to_string()),
+                _ => unreachable!(),
             }
             parsed_image
         }
     }
 
-    fn parse_header_to_slice(byte_vec: &Vec<u8>) -> (Vec<&str>, Vec<u8>) {
+    /// Helper function for parsing header from binary file
+    /// Returns a string vector containing header info, and a byte vector containing the buffer
+    fn parse_header_to_slice(byte_vec: &Vec<u8>, mut arg_count: usize) -> (Vec<&str>, Vec<u8>) {
         let mut start_idx = 0;
         let mut i = 0;
         let mut delim_vector: Vec<&str> = Vec::new();
@@ -187,11 +274,32 @@ pub mod io {
                     Ok(header_data) => delim_vector.push(header_data.trim()),
                     Err(_) => break
                 }
+                if arg_count == 0 { break } else { arg_count -= 1; }
                 start_idx = i;
             }
             i += 1;
         }
         (delim_vector, byte_vec[(start_idx+1)..].to_vec())
+    }
+
+    // Helper function for parsing PBM misaligned bytes
+    // Converts given buffer from 8 bits a byte to 1 bit a byte
+    // Returns new vector which is formatted to a byte per pixel
+    fn realign_byte_buffer(byte_buffer: Vec<u8>, width: usize) -> Vec<u8> {
+        let mut new_buffer: Vec<u8> = Vec::new();
+        let byte_alignment: (usize, usize) = ((width / 8) + 1, width % 8);
+        for (idx, byte) in byte_buffer.iter().enumerate() {
+            let mut bits_to_grab = 8;
+            if (idx +1) % byte_alignment.0 == 0 { bits_to_grab = byte_alignment.1 }
+            for idy in ((8 - bits_to_grab)..8).rev() {
+                if byte & (1 << idy) != 0 {
+                    new_buffer.push(1);
+                } else {
+                    new_buffer.push(0);
+                }
+            }
+        }
+        new_buffer
     }
 
 }
