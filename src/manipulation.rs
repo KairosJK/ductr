@@ -18,7 +18,6 @@ pub mod manipulation {
         /// let mut pbm_black_to_white = AnymapImage::pbm(buffer, 100, 100).unwrap();
         /// 
         /// pbm_black_to_white.invert();
-        /// 
         /// ``` 
         pub fn invert(&mut self) {
             match self.magic_number.as_str() {

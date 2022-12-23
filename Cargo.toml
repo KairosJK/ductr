@@ -1,6 +1,6 @@
 [package]
 name = "ductr"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Jonathan Kocevar"]
 description = "a small crate for reading, writing, and simple manipulation of the portable pixelmap format family"
 readme = "readme.md"

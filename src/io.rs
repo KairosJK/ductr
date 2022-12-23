@@ -23,7 +23,6 @@ pub mod io {
         /// let ppm_white = AnymapImage::pbm(buffer, 100, 100).unwrap();
         /// 
         /// ppm_white.write_as_ascii("tests/images/white.ppm").expect("Could not create file");
-        /// 
         /// ``` 
         pub fn write_as_ascii(&self, path: &str) -> Result<(), String> {
             // open file
@@ -90,7 +89,6 @@ pub mod io {
         /// let ppm_black = AnymapImage::pbm(buffer, 100, 100).unwrap();
         /// 
         /// ppm_black.write_as_binary("tests/images/black.ppm").expect("Could not create file");
-        /// 
         /// ``` 
         pub fn write_as_binary(&self, path: &str) -> Result<(), String> {
             
