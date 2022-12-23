@@ -8,7 +8,7 @@ repository = "https://github.com/KairosJK/ductr"
 license = "GPL-3.0-only"
 keywords = ["pbm", "pgm", "ppm", "netpbm", "image"]
 categories = ["encoding", "graphics", "multimedia::images", "development-tools::debugging"]
-exclude = ["test/", ".*"]
+exclude = ["tests/", ".*"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

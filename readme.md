@@ -1,6 +1,12 @@
 # 🎨 Ductr
 
-a small crate for reading, writing, and simple manipulation of the portable pixelmap format family
+a small struct crate for reading, writing, and simple manipulation of the portable pixelmap format family
+
+## 🧠 Design
+
+This crate was made with the focus of quick and easy debugging as its main goal. Printing byte arrays quickly to a visual file can be great when debugging basic graphics and image manipulation algorithms, and the Portable pixelmap family format is one of the quickest to set up.
+
+In the future this crate may extend to other raster file formats, such as JPEG or BMP
 
 ## 🖥️ How to use:
 
@@ -12,34 +18,33 @@ ductr = "0.0.1"
 ```
 
 ## ⚙️ Examples
-
 ```rust
-use crate::netpbm::AnymapImage;
+use ductr::AnymapImage;
 
 // Creating a 100x100 black pbm image
 
 // Prepare buffer to be written to pbm format
 let buffer = vec![1; 100*100];
-
+ 
 // Create AnymapImage object with pbm constructor
-let pbm_black = AnymapImage::pbm(pixel_map, 100, 100).unwrap();
+let pbm_black = AnymapImage::pbm(buffer, 100, 100).unwrap();
 
 // Write pbm as binary file 
 pbm_black.write_as_binary("pbm_black_binary.pbm").expect("Error: could not to binary file.");
 ```
 ```rust
-use crate::netpbm::AnymapImage;
+use ductr::AnymapImage;
 
 // Inverting the colors of a given ppm image
 
 // Create AnymapImage object from binary ppm image file
-let mut x = AnymapImage::read_from_binary("test/.ppm").unwrap();
+let mut cat = AnymapImage::read_from_binary("tests/images/cat_binary.ppm").expect("Error: could not read from binary file");
 
 // Invert the image
-x.invert_image();
+cat.invert();
 
 // Write ppm as binary file
-x.write_as_binary("test/newoutput.pnm").unwrap();
+cat.write_as_binary("tests/images/cat_inverted.pnm").expect("Error: could not write to binary file");
 ```
 
 ## 📌 Other Information on the format
